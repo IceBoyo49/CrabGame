@@ -5,7 +5,7 @@ function preload() {
     game.load.image('button', "assets/start/button.png");
     game.load.image('start3', "assets/start/start3.png");
     game.load.image('background', "assets/background.png");
-    game.load.image('city', "assets/city.png");
+    game.load.spritesheet('city', "assets/cityspritesheet.png", 1280, 716, 2);
     game.load.spritesheet('crab', "assets/crab/Crab_fullsprite.png", 320, 320, 4);
     game.stage.backgroundColor = "0x9090ff";
     game.load.spritesheet('scientist', "assets/scientist/spritesheet.png", 310, 310, 4);
@@ -20,14 +20,15 @@ function preload() {
     game.load.image('credits1', "assets/credits/credits1.png");
     game.load.image('credits2', "assets/credits/credits2.png");
     game.load.image('credits3', "assets/credits/credits3.png");
+    game.load.image('domination', "assets/domination.png");
 }
 function create() {
-    setUpStartScreen();
+    //setUpStartScreen();
     introVideo = game.add.video('intro');
     introVideo.addToWorld(0, 0);
     introVideo.play();
     introVideo.volume = 0;
-    introVideo.onComplete.addOnce(destroyVideo, this);
+    introVideo.onComplete.addOnce(destroyVideo);
     backgroundMusic = game.add.audio('background');
     winSound = game.add.audio('win');
     deadSound = game.add.audio('dead');
@@ -100,7 +101,10 @@ function moveUp() {
     player.y = tileSize * playerLocation.y;
 }
 function winScreen() {
-    game.add.sprite(0, 0, 'city');
+    var city = game.add.sprite(0, 0, 'city');
+    var domination = game.add.sprite(game.world.centerX - 442, 100, 'domination');
+    var cityBurn = city.animations.add('burn');
+    city.animations.play('burn', 6, true);
     setTimeout(function () {
         gameOver();
     }, 5000);
@@ -218,8 +222,10 @@ function gameOver() {
     loadCredits();
 }
 function startGame() {
-    introVideo.stop();
-    introVideo.destroy();
+    if (introVideo.playing) {
+        introVideo.stop();
+        introVideo.destroy();
+    }
     createGrid();
     isStarted = true;
     game.world.remove(startScreen);
@@ -236,6 +242,7 @@ function clearGrid() {
 }
 function createGrid() {
     clearGrid();
+    var background = game.add.sprite(0, 0, 'background');
     //drawLines();
     placeBarrels();
     placeScientist();
@@ -244,7 +251,6 @@ function createGrid() {
     seagullGroup = game.add.group();
 }
 function placeScientist() {
-    var background = game.add.sprite(0, 0, 'background');
     player = game.add.sprite(0, (tileSize * (gridHeight - 1)), 'scientist');
     gameGrid[0][gridHeight - 1] = 1;
     player.scale.set(0.25, 0.25);

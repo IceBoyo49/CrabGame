@@ -11,15 +11,17 @@ function preload() {
     game.load.spritesheet('scientist', "assets/scientist/spritesheet.png", 310, 310, 4);
 
     game.load.spritesheet('octopus', "assets/octopus/spritesheet.png", 310, 310, 4);
+    game.load.spritesheet('seagull', "assets/seagull/seagull.png", 320, 320, 2);
+    game.load.spritesheet('barrel', "assets/toxic/radioactive_barrel.png", 320, 320, 4);
 
-    game.load.audio('backgroun', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
+    game.load.audio('background', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
     
 }
 
 function create(){
     setUpStartScreen();
 
-    backgroundMusic = game.add.audio('backgroun');
+    backgroundMusic = game.add.audio('background');
     game.sound.setDecodedCallback([backgroundMusic], soundsReady, this);
 
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -36,7 +38,16 @@ function create(){
 } 
 
 function update(){
-    
+    if(!isStarted){
+        return;
+    }
+    seagullSpawnTimer -= 1;
+    if(seagullSpawnTimer < 0){
+        spawnSeagull();
+        seagullSpawnTimer = game.rnd.integerInRange(200, 400);
+    }
+    moveSeagulls();
+    moveOctopi();
 }
 
 function soundsReady(){
@@ -49,14 +60,21 @@ function render(){
     }
 }
 
+function checkForRadiation(location){
+    if(location == 4){
+        player.destroy();
+    }
+}
+
 function moveUp(){
     if(playerLocation.y - 1 < 0){
         return;
     }
     var newSpace = gameGrid[playerLocation.x][playerLocation.y - 1];
-    if(newSpace != 0){
+    if(newSpace != 0 && newSpace != 4){
         return;
     }
+    checkForRadiation(newSpace);
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x][playerLocation.y - 1] = 1;
 
@@ -73,6 +91,7 @@ function moveDown(){
     if(newSpace != 0){
         return;
     }
+    checkForRadiation(newSpace);
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x][playerLocation.y + 1] = 1;
 
@@ -89,6 +108,7 @@ function moveLeft(){
     if(newSpace != 0){
         return;
     }
+    checkForRadiation(newSpace);
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x - 1][playerLocation.y] = 1;
 
@@ -105,6 +125,7 @@ function moveRight(){
     if(newSpace != 0){
         return;
     }
+    checkForRadiation(newSpace);
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x + 1][playerLocation.y] = 1;
 
@@ -130,6 +151,7 @@ function setUpStartScreen(){
 
 function startGame() {
     createGrid();
+    isStarted = true;
     game.world.remove(startScreen);
     button.inputEnabled = false;
 }
@@ -147,9 +169,11 @@ function clearGrid() {
 function createGrid() {
     clearGrid();
     drawLines();
+    placeBarrels();
     placeScientist();
     placeCrabs();
     placeOctopi();
+    seagullGroup = game.add.group();
 }
 
 function placeScientist(){
@@ -176,6 +200,96 @@ function placeCrabs(){
     }
 }
 
+function placeBarrels(){
+    for(var i = 0; i < 4; i++){
+        var location = findRandomSpot();
+
+        var barrel = game.add.sprite(tileSize * location.x, tileSize * location.y, 'barrel');
+        barrel.scale.set(0.25, 0.25)
+        var barrelSeep = barrel.animations.add('seep');
+        barrel.animations.play('seep', 4, true);
+        gameGrid[location.x][location.y] = 4;
+    }
+}
+
+function spawnSeagull(){
+    seagullCount++;
+    var randomX = game.rnd.integerInRange(0, gridWidth - 1);
+    var seagull = seagullGroup.create(tileSize * randomX, (720 - tileSize), 'seagull');
+    seagull.scale.set(0.25, 0.25);
+    var seagullFly = seagull.animations.add('fly');
+    seagull.animations.play('fly', 4, true);
+
+    seagulls[seagullCount - 1] = new Phaser.Point(randomX, gridHeight - 1);
+    seagullMovementTimers[seagullCount - 1] = 30;
+}
+
+function moveSeagulls(){
+    for(var i = 0; i < seagullCount; i++){
+        seagullMovementTimers[i]--;
+        if(seagullMovementTimers[i] < 0){
+            seagullMovementTimers[i] = 30;
+            var newSpace = gameGrid[seagulls[i].x, seagulls[i].y - 1];
+            var seagullSprite = seagullGroup.children[i];
+            if(seagulls[i].y - 1 < 0){
+                seagulls.splice(i, 1);
+                seagullMovementTimers.splice(i, 1);
+                seagullCount--;
+                seagullSprite.destroy();
+            }
+            else{
+                seagullSprite.y -= tileSize;
+                seagulls[i].y -= 1;
+            }
+        }
+    }
+}
+
+function moveOctopi(){
+    for(var i = 0; i < octopusCount; i++){
+        octopusMovementTimers[i]--;
+        if(octopusMovementTimers[i] <= 0){
+            octopusMovementTimers[i] = game.rnd.integerInRange(60, 240);
+            var newPoint = findOpenSpace(octopi[i]);
+            var octoSprite = octopusGroup.children[i];
+            octoSprite.x = newPoint.x * tileSize;
+            octoSprite.y = newPoint.y * tileSize;
+
+            gameGrid[octopi[i].x][octopi[i].y] = 0;
+            gameGrid[newPoint.x][newPoint.y] = 3;
+
+            octopi[i] = newPoint;
+        }
+    }
+}
+
+function findOpenSpace(point){
+    var direction = game.rnd.integerInRange(0,3);
+    var newPoint = new Phaser.Point(point.x, point.y);
+    if(direction == 0){
+        newPoint.y--;
+    }
+    else if(direction == 1){
+        newPoint.x++;
+    }
+    else if(direction == 2){
+        newPoint.y++;
+    }
+    else if(direction == 3){
+        newPoint.x--;
+    }
+    if(newPoint.x >= gridWidth || newPoint.x < 0){
+        return point;
+    }
+    if(newPoint.y >= gridHeight || newPoint.y < 0){
+        return point;
+    }
+    if(gameGrid[newPoint.x][newPoint.y] != 0){
+        return point;
+    }
+    return newPoint;
+}
+
 function placeOctopi(){
     octopusGroup = game.add.group();
     for (var i = 0; i < octopusCount; i++){
@@ -187,6 +301,8 @@ function placeOctopi(){
         octopus.scale.set(0.25, 0.25)
         var octopusWalk = octopus.animations.add('walk');
         octopus.animations.play('walk', 8, true);
+
+        octopusMovementTimers[i] = 120;
     }
 }
 
@@ -231,9 +347,13 @@ var crabGroup;
 var octopi = [];
 var octopusCount = 4; 
 var octopusGroup; 
+var octopusMovementTimers = [];
 
 var seagulls = [];
+var seagullMovementTimers = [];
 var seagullGroup;
+var seagullSpawnTimer = 120;
+var seagullCount = 0;
 
 var player;
 var playerLocation;

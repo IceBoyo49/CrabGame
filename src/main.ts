@@ -15,19 +15,22 @@ function preload() {
     game.load.spritesheet('barrel', "assets/toxic/radioactive_barrel.png", 320, 320, 4);
 
     game.load.audio('background', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
+    game.load.audio('win', "assets/sounds/Sounds/youwin.wav");
+    game.load.audio('dead', "assets/sounds/Sounds/dead.wav");
 
     game.load.image('credits0', "assets/credits/credits0.png");
     game.load.image('credits1', "assets/credits/credits1.png");
     game.load.image('credits2', "assets/credits/credits2.png");
     game.load.image('credits3', "assets/credits/credits3.png");
-    
 }
 
 function create(){
     setUpStartScreen();
 
     backgroundMusic = game.add.audio('background');
-    game.sound.setDecodedCallback([backgroundMusic], soundsReady, this);
+    winSound = game.add.audio('win');
+    deadSound = game.add.audio('dead');
+    game.sound.setDecodedCallback([backgroundMusic, winSound], soundsReady, this);
 
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     upKey.onDown.add(moveUp);
@@ -71,15 +74,31 @@ function checkForRadiation(location){
     }
 }
 
+function checkForCrab(location){
+    if(location == 2){
+        return true;
+    }
+    return false;
+}
+
 function moveUp(){
     if(playerLocation.y - 1 < 0){
         return;
     }
     var newSpace = gameGrid[playerLocation.x][playerLocation.y - 1];
-    if(newSpace != 0 && newSpace != 4){
-        return;
+    var newLocation = new Phaser.Point(playerLocation.x, playerLocation.y - 1);
+    if(newSpace == 3){
+        gameOver();
     }
     checkForRadiation(newSpace);
+    if(checkForCrab(newSpace)){
+        var index = findCrab(newLocation);
+        var crabSprite = crabGroup.children[index];
+        crabSprite.destroy();
+        crabs.splice(index,1);
+        crabCount--;
+        checkForWin();
+    }
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x][playerLocation.y - 1] = 1;
 
@@ -88,15 +107,40 @@ function moveUp(){
     player.y = tileSize * playerLocation.y;
 }
 
+function checkForWin(){
+    if(crabCount <= 0){
+        winSound.play();
+        gameOver();
+    }
+}
+
+function findCrab(location){
+    for(var i = 0; i < crabCount; i++){
+        if(crabs[i].x == location.x && crabs[i].y == location.y){
+            return i;
+        }
+    }
+    return -1;
+}
+
 function moveDown(){
     if(playerLocation.y >= gridHeight){
         return;
     }
     var newSpace = gameGrid[playerLocation.x][playerLocation.y + 1];
-    if(newSpace != 0 && newSpace != 4){
-        return;
+    var newLocation = new Phaser.Point(playerLocation.x, playerLocation.y + 1);
+    if(newSpace == 3){
+        gameOver();
     }
     checkForRadiation(newSpace);
+    if(checkForCrab(newSpace)){
+        var index = findCrab(newLocation);
+        var crabSprite = crabGroup.children[index];
+        crabSprite.destroy();
+        crabs.splice(index,1);
+        crabCount--;
+        checkForWin();
+    }
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x][playerLocation.y + 1] = 1;
 
@@ -110,10 +154,19 @@ function moveLeft(){
         return;
     }
     var newSpace = gameGrid[playerLocation.x - 1][playerLocation.y];
-    if(newSpace != 0 && newSpace != 4){
-        return;
+    var newLocation = new Phaser.Point(playerLocation.x - 1, playerLocation.y);
+    if(newSpace == 3){
+        gameOver();
     }
     checkForRadiation(newSpace);
+    if(checkForCrab(newSpace)){
+        var index = findCrab(newLocation);
+        var crabSprite = crabGroup.children[index];
+        crabSprite.destroy();
+        crabs.splice(index,1);
+        crabCount--;
+        checkForWin();
+    }
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x - 1][playerLocation.y] = 1;
 
@@ -127,10 +180,19 @@ function moveRight(){
         return;
     }
     var newSpace = gameGrid[playerLocation.x + 1][playerLocation.y];
-    if(newSpace != 0 && newSpace != 4){
-        return;
+    var newLocation = new Phaser.Point(playerLocation.x + 1, playerLocation.y);
+    if(newSpace == 3){
+        gameOver();
     }
     checkForRadiation(newSpace);
+    if(checkForCrab(newSpace)){
+        var index = findCrab(newLocation);
+        var crabSprite = crabGroup.children[index];
+        crabSprite.destroy();
+        crabs.splice(index,1);
+        crabCount--;
+        checkForWin();
+    }
     gameGrid[playerLocation.x][playerLocation.y] = 0;
     gameGrid[playerLocation.x + 1][playerLocation.y] = 1;
 
@@ -165,6 +227,8 @@ function loadCredits(){
 
 function gameOver(){
     player.destroy();
+    deadSound.play();
+    isStarted = false;
     game.world.remove(crabGroup);
     game.world.remove(seagullGroup);
     game.world.remove(octopusGroup);
@@ -258,10 +322,14 @@ function moveSeagulls(){
                 seagullMovementTimers.splice(i, 1);
                 seagullCount--;
                 seagullSprite.destroy();
+                return;
             }
             else{
                 seagullSprite.y -= tileSize;
                 seagulls[i].y -= 1;
+            }
+            if(gameGrid[seagulls[i].x][seagulls[i].y] == 1){
+                gameOver();
             }
         }
     }
@@ -271,6 +339,10 @@ function moveOctopi(){
     for(var i = 0; i < octopusCount; i++){
         octopusMovementTimers[i]--;
         if(octopusMovementTimers[i] <= 0){
+            if(checkForPlayer(octopi[i])){
+                gameOver();
+                return;
+            }
             octopusMovementTimers[i] = game.rnd.integerInRange(60, 240);
             var newPoint = findOpenSpace(octopi[i]);
             var octoSprite = octopusGroup.children[i];
@@ -283,6 +355,30 @@ function moveOctopi(){
             octopi[i] = newPoint;
         }
     }
+}
+
+function checkForPlayer(centerPoint){
+    var left = 0;
+    var right = 0;
+    var up = 0;
+    var down = 0;
+    if(centerPoint.x - 1 >= 0){
+        left = gameGrid[centerPoint.x - 1][centerPoint.y];
+    }
+    if(centerPoint.x + 1 < gridWidth){
+        right = gameGrid[centerPoint.x + 1][centerPoint.y];
+    }
+    if(centerPoint.y - 1 >= 0){
+        up = gameGrid[centerPoint.x][centerPoint.y - 1];
+    }
+    if(centerPoint.y + 1 < gridHeight){
+        down = gameGrid[centerPoint.x][centerPoint.y + 1];
+    }
+
+    if(left == 1 || right == 1 || up == 1 || down == 1){
+        return true;
+    }
+    return false;
 }
 
 function findOpenSpace(point){
@@ -357,6 +453,8 @@ var startScreen;
 var creditScreen;
 var button;
 var backgroundMusic;
+var winSound;
+var deadSound;
 
 var upKey;
 var downKey;

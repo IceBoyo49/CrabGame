@@ -11,11 +11,16 @@ function preload() {
     game.load.spritesheet('scientist', "assets/scientist/spritesheet.png", 310, 310, 4);
 
     game.load.spritesheet('octopus', "assets/octopus/spritesheet.png", 310, 310, 4);
+
+    game.load.audio('backgroun', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
     
 }
 
 function create(){
     setUpStartScreen();
+
+    backgroundMusic = game.add.audio('backgroun');
+    game.sound.setDecodedCallback([backgroundMusic], soundsReady, this);
 
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     upKey.onDown.add(moveUp);
@@ -32,6 +37,10 @@ function create(){
 
 function update(){
     
+}
+
+function soundsReady(){
+    backgroundMusic.play();
 }
 
 function render(){
@@ -208,6 +217,7 @@ var isStarted = false;
 
 var startScreen;
 var button;
+var backgroundMusic;
 
 var upKey;
 var downKey;

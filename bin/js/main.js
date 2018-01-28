@@ -8,9 +8,12 @@ function preload() {
     game.stage.backgroundColor = "0x9090ff";
     game.load.spritesheet('scientist', "assets/scientist/spritesheet.png", 310, 310, 4);
     game.load.spritesheet('octopus', "assets/octopus/spritesheet.png", 310, 310, 4);
+    game.load.audio('backgroun', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
 }
 function create() {
     setUpStartScreen();
+    backgroundMusic = game.add.audio('backgroun');
+    game.sound.setDecodedCallback([backgroundMusic], soundsReady, this);
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     upKey.onDown.add(moveUp);
     downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
@@ -21,6 +24,9 @@ function create() {
     rightKey.onDown.add(moveRight);
 }
 function update() {
+}
+function soundsReady() {
+    backgroundMusic.play();
 }
 function render() {
     for (var i = 0; i < gridHeight + gridWidth; i++) {
@@ -166,6 +172,7 @@ function drawLines() {
 var isStarted = false;
 var startScreen;
 var button;
+var backgroundMusic;
 var upKey;
 var downKey;
 var leftKey;

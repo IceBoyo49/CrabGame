@@ -11,6 +11,10 @@ function preload() {
     game.load.spritesheet('seagull', "assets/seagull/seagull.png", 320, 320, 2);
     game.load.spritesheet('barrel', "assets/toxic/radioactive_barrel.png", 320, 320, 4);
     game.load.audio('background', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
+    game.load.image('credits0', "assets/credits/credits0.png");
+    game.load.image('credits1', "assets/credits/credits1.png");
+    game.load.image('credits2', "assets/credits/credits2.png");
+    game.load.image('credits3', "assets/credits/credits3.png");
 }
 function create() {
     setUpStartScreen();
@@ -47,7 +51,7 @@ function render() {
 }
 function checkForRadiation(location) {
     if (location == 4) {
-        player.destroy();
+        gameOver();
     }
 }
 function moveUp() {
@@ -69,7 +73,7 @@ function moveDown() {
         return;
     }
     var newSpace = gameGrid[playerLocation.x][playerLocation.y + 1];
-    if (newSpace != 0) {
+    if (newSpace != 0 && newSpace != 4) {
         return;
     }
     checkForRadiation(newSpace);
@@ -83,7 +87,7 @@ function moveLeft() {
         return;
     }
     var newSpace = gameGrid[playerLocation.x - 1][playerLocation.y];
-    if (newSpace != 0) {
+    if (newSpace != 0 && newSpace != 4) {
         return;
     }
     checkForRadiation(newSpace);
@@ -97,7 +101,7 @@ function moveRight() {
         return;
     }
     var newSpace = gameGrid[playerLocation.x + 1][playerLocation.y];
-    if (newSpace != 0) {
+    if (newSpace != 0 && newSpace != 4) {
         return;
     }
     checkForRadiation(newSpace);
@@ -118,6 +122,20 @@ function setUpStartScreen() {
     var crabWalk = crab.animations.add('walk');
     crab.animations.play('walk', 4, true);
 }
+function loadCredits() {
+    creditScreen = game.add.group();
+    creditScreen.create(0, 0, 'credits0');
+    creditScreen.create(0, 0, 'credits1');
+    creditScreen.create(0, 0, 'credits2');
+    creditScreen.create(0, 0, 'credits3');
+}
+function gameOver() {
+    player.destroy();
+    game.world.remove(crabGroup);
+    game.world.remove(seagullGroup);
+    game.world.remove(octopusGroup);
+    loadCredits();
+}
 function startGame() {
     createGrid();
     isStarted = true;
@@ -135,7 +153,7 @@ function clearGrid() {
 }
 function createGrid() {
     clearGrid();
-    drawLines();
+    //drawLines();
     placeBarrels();
     placeScientist();
     placeCrabs();
@@ -277,6 +295,7 @@ function drawLines() {
 }
 var isStarted = false;
 var startScreen;
+var creditScreen;
 var button;
 var backgroundMusic;
 var upKey;

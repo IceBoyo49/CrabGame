@@ -5,6 +5,8 @@ function preload() {
     game.load.image('start1', "assets/start/start1.png");
     game.load.image('button', "assets/start/button.png");
     game.load.image('start3', "assets/start/start3.png");
+    game.load.image('background', "assets/background.png");
+    game.load.image('city', "assets/city.png");
     game.load.spritesheet('crab', "assets/crab/Crab_fullsprite.png", 320, 320, 4);
     game.stage.backgroundColor = "0x9090ff";
 
@@ -17,6 +19,7 @@ function preload() {
     game.load.audio('background', "assets/sounds/Mushroom Cloud Layin Motherfucker (Music).wav");
     game.load.audio('win', "assets/sounds/Sounds/youwin.wav");
     game.load.audio('dead', "assets/sounds/Sounds/dead.wav");
+    game.load.video('intro', "assets/video/Scientist.mp4");
 
     game.load.image('credits0', "assets/credits/credits0.png");
     game.load.image('credits1', "assets/credits/credits1.png");
@@ -26,6 +29,12 @@ function preload() {
 
 function create(){
     setUpStartScreen();
+
+    introVideo = game.add.video('intro');
+    introVideo.addToWorld(0, 0);
+    introVideo.play();
+    introVideo.volume = 0;
+    introVideo.onComplete.addOnce(destroyVideo, this)
 
     backgroundMusic = game.add.audio('background');
     winSound = game.add.audio('win');
@@ -44,6 +53,11 @@ function create(){
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
     rightKey.onDown.add(moveRight);
 } 
+
+function destroyVideo(){
+    introVideo.destroy();
+    setUpStartScreen();
+}
 
 function update(){
     if(!isStarted){
@@ -107,10 +121,18 @@ function moveUp(){
     player.y = tileSize * playerLocation.y;
 }
 
+function winScreen(){
+    game.add.sprite(0, 0, 'city');
+    setTimeout(function(){
+        gameOver();
+    }, 5000);
+}
+
 function checkForWin(){
     if(crabCount <= 0){
         winSound.play();
-        gameOver();
+        winScreen();
+        //gameOver();
     }
 }
 
@@ -236,6 +258,8 @@ function gameOver(){
 }
 
 function startGame() {
+    introVideo.stop();
+    introVideo.destroy();
     createGrid();
     isStarted = true;
     game.world.remove(startScreen);
@@ -253,6 +277,7 @@ function clearGrid() {
 }
 
 function createGrid() {
+
     clearGrid();
     //drawLines();
     placeBarrels();
@@ -263,6 +288,8 @@ function createGrid() {
 }
 
 function placeScientist(){
+    var background = game.add.sprite(0,0, 'background');
+
     player = game.add.sprite(0, (tileSize * (gridHeight - 1)), 'scientist');
     gameGrid[0][gridHeight - 1] = 1;
     player.scale.set(0.25, 0.25);
@@ -455,6 +482,8 @@ var button;
 var backgroundMusic;
 var winSound;
 var deadSound;
+var introVideo;
+var cityScreen;
 
 var upKey;
 var downKey;
@@ -485,3 +514,5 @@ var lines = [];
 var gridWidth = 16;
 var gridHeight = 9;
 var tileSize = 80;
+
+var victory = false;
